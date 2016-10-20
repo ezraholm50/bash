@@ -1,0 +1,35 @@
+#!/bin/bash
+# This script should be placed in /etc/cron.daily/backup
+# This script logs the data of each individual backup script located in /var/scripts/
+# To a file specified in /var/log/
+
+# Script's
+BASE="/var/scripts"
+SCRIPT1="$BASE/scriptname"
+SCRIPT2="$BASE/scriptname"
+SCRIPT3="$BASE/scriptname"
+
+# Log's
+BASE-LOG="/var/log"
+LOG1="$BASE-LOG/logfile"
+LOG2="$BASE-LOG/logfile"
+LOG3="$BASE-LOG/logfile"
+
+# Date var's
+adddate() {
+    while IFS= read -r line; do
+        echo "$(date) $line"
+    done
+}
+
+# Make sure the files are there
+sudo touch "$LOG1"
+sudo touch "$LOG2"
+sudo touch "$LOG3"
+
+# Backup and log rules
+sudo bash "$SCRIPT1" | adddate >> "$LOG1" 2>&1
+sudo bash "$SCRIPT2" | adddate >> "$LOG2" 2>&1
+sudo bash "$SCRIPT3" | adddate >> "$LOG3" 2>&1
+
+exit 0
