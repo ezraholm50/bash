@@ -1,0 +1,40 @@
+#!/bin/bash
+# This script backs VM's up in a specified location
+
+## Vars
+
+# Date 
+NOW=$(date +%d-%m-%y)
+DAYS_AGO=$(date -d "7 days ago"  +"%d-%m-%y")
+
+# Backup dir
+BACKUP="/backup"
+
+# User
+VMUSER="user name that runs the vm's"
+
+# VM's
+VM1="your vm name"
+
+# Create backup dir if needed
+mkdir -p "$BACKUP"
+mkdir -p "$BACKUP/vm"
+
+# Backup the VM
+mkdir -p /backup/vm/$VM1
+
+rm /backup/vm/$VM1/$VM1-$DAYS_AGO*
+sudo -H -b -u $VMUSER VBoxManage controlvm "$VM1" acpipowerbutton && sleep 30
+VBoxManage export "$VM1" --output "/backup/vm/$VM1/$VM1-$NOW.ovf"
+sudo -H -b -u "$VMUSER" VBoxHeadless --startvm "$VM1"
+
+
+
+
+
+#rm -r /media/nas2/backup/vm
+#rsync -aAX /backup/vm/* /media/nas2/backup/vm/
+
+/etc/init.d/StartVMs start
+
+exit 0
