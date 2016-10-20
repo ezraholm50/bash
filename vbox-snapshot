@@ -1,0 +1,21 @@
+#!/bin/bash
+# Create snapshot and delete backups of 7 days old
+# Should be placed in /etc/cron.daily/snapshot
+# A list of snapshots per VM is available in: /var/scripts/snapshot-list
+# Due to an unknown bug the snapshots are not visible in virtualbox's UI
+
+# Vars
+NOW=$(date +%d-%m-%y)
+DAYS_AGO=$(date -d "7 days ago"  +"%d-%m-%y")
+SNAPSHOT_NAME="snapshot_$NOW"
+
+# Snapshot take and delete per VM
+vboxmanage snapshot "$VM1" delete snapshot_"$DAYS_AGO"
+VBoxManage snapshot "$VM1" take "$SNAPSHOT_NAME"
+
+# List the current snapshots in a file
+mkdir -p /var/scripts
+mkdir -p /var/scripts/snapshot-list/
+
+VM1-LIST=$(vboxmanage snapshot "$VM1" list)
+echo "$VM1-LIST" > "/var/scripts/snapshot-list/$VM1"
