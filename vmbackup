@@ -1,11 +1,11 @@
 #!/bin/bash
-# This script backs VM's up in a specified location
+# This script backs VM's up in a specified location. Backups are kept for 2 weeks
+# Should be placed in /var/scripts/vmbackup and a version of backup-master in /etc/cron.weekly/vmbackup executing this script
 
 ## Vars
-
 # Date 
 NOW=$(date +%d-%m-%y)
-DAYS_AGO=$(date -d "7 days ago"  +"%d-%m-%y")
+DAYS_AGO=$(date -d "14 days ago"  +"%d-%m-%y")
 
 # Backup dir
 BACKUP="/backup"
@@ -13,7 +13,7 @@ BACKUP="/backup"
 # User
 VMUSER="user name that runs the vm's"
 
-# VM's
+# VM's (need to be registered with: vboxmanage registervm /location/of/vm.vbox)
 VM1="your vm name"
 
 # Create backup dir if needed
@@ -22,19 +22,16 @@ mkdir -p "$BACKUP/vm"
 
 # Backup the VM
 mkdir -p /backup/vm/$VM1
-
+# Remove backups older than specified days
 rm /backup/vm/$VM1/$VM1-$DAYS_AGO*
+# Shutdown VM in order to export
 sudo -H -b -u $VMUSER VBoxManage controlvm "$VM1" acpipowerbutton && sleep 30
+# Export
 VBoxManage export "$VM1" --output "/backup/vm/$VM1/$VM1-$NOW.ovf"
+# Start VM
 sudo -H -b -u "$VMUSER" VBoxHeadless --startvm "$VM1"
 
-
-
-
-
-#rm -r /media/nas2/backup/vm
-#rsync -aAX /backup/vm/* /media/nas2/backup/vm/
-
-/etc/init.d/StartVMs start
+# Extra failsafe for automated backup, only uncomment if you have the startup script
+#/etc/init.d/StartVMs start
 
 exit 0
