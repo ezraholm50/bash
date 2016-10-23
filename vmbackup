@@ -21,9 +21,9 @@ mkdir -p /backup/
 mkdir -p /backup/vm
 
 ################VM 1##########################
-mkdir -p ""$BACKUPDIR""/"$VM1"
+mkdir -p "$BACKUPDIR"/"$VM1"
 sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM1" acpipowerbutton && sleep 30
-VBoxManage export "$VM1" --output "$BACKUPDIR"/""$VM1""/"$VM1"-"$NOW".ovf
+VBoxManage export "$VM1" --output "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".ovf
 sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM1"
 
 ################VM 2##########################
