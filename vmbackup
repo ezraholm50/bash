@@ -1,37 +1,59 @@
 #!/bin/bash
-# This script backs VM's up in a specified location. Backups are kept for 2 weeks
-# Should be placed in /var/scripts/vmbackup and a version of backup-master in /etc/cron.weekly/vmbackup executing this script
-
-## Vars
-# Date 
 NOW=$(date +%d-%m-%y)
-DAYS_AGO=$(date -d "14 days ago"  +"%d-%m-%y")
+DAYS_AGO=$(date -d "28 days ago"  +"%d-%m-%y")
 
-# Backup dir
-BACKUP="/backup"
+BACKUPDIR=""
+VBOXUSR=""
 
-# User
-VMUSER="user name that runs the vm's"
+VM1=""
+VM2=""
+VM3=""
+VM4=""
+VM5=""
 
-# VM's (need to be registered with: vboxmanage registervm /location/of/vm.vbox)
-VM1="your vm name"
+mkdir -p /backup/
+mkdir -p /backup/vm
 
-# Create backup dir if needed
-mkdir -p "$BACKUP"
-mkdir -p "$BACKUP/vm"
+##############################################
+mkdir -p "$BACKUPDIR/$VM1"
+sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM1" acpipowerbutton && sleep 30
+VBoxManage export "$VM1" --output "$BACKUPDIR/$VM1/$VM1-$NOW.ovf"
+sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM1"
+tar -jcvf "$BACKUPDIR/$VM1/VM1-$NOW.tar.bz2" "$BACKUPDIR/$VM1/*$NOW*" && rm -r "$BACKUPDIR/$VM1/*$NOW*"
+rm -r "$BACKUPDIR/$VM1/*$DAYS_AGO*"
 
-# Backup the VM
-mkdir -p /backup/vm/$VM1
-# Remove backups older than specified days
-rm /backup/vm/$VM1/$VM1-$DAYS_AGO*
-# Shutdown VM in order to export
-sudo -H -b -u $VMUSER VBoxManage controlvm "$VM1" acpipowerbutton && sleep 30
-# Export
-VBoxManage export "$VM1" --output "/backup/vm/$VM1/$VM1-$NOW.ovf"
-# Start VM
-sudo -H -b -u "$VMUSER" VBoxHeadless --startvm "$VM1"
+##############################################
+mkdir -p "$BACKUPDIR/$VM2"
+sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM2" acpipowerbutton && sleep 30
+VBoxManage export "$VM2" --output "$BACKUPDIR/$VM2/$VM2-$NOW.ovf"
+sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM2"
+tar -jcvf "$BACKUPDIR/$VM2/VM2-$NOW.tar.bz2" "$BACKUPDIR/$VM2/*$NOW*" && rm -r "$BACKUPDIR/$VM2/*$NOW*"
+rm -r "$BACKUPDIR/$VM2/*$DAYS_AGO*"
 
-# Extra failsafe for automated backup, only uncomment if you have the startup script
-#/etc/init.d/StartVMs start
+##############################################
+mkdir -p "$BACKUPDIR/$VM3"
+sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM3" acpipowerbutton && sleep 30
+VBoxManage export "$VM3" --output "$BACKUPDIR/$VM3/$VM3-$NOW.ovf"
+sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM3"
+tar -jcvf "$BACKUPDIR/$VM3/VM3-$NOW.tar.bz2" "$BACKUPDIR/$VM3/*$NOW*" && rm -r "$BACKUPDIR/$VM3/*$NOW*"
+rm -r "$BACKUPDIR/$VM3/*$DAYS_AGO*"
+
+##############################################
+mkdir -p "$BACKUPDIR/$VM4"
+sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM4" acpipowerbutton && sleep 30
+VBoxManage export "$VM4" --output "$BACKUPDIR/$VM4/$VM4-$NOW.ovf"
+sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM4"
+tar -jcvf "$BACKUPDIR/$VM4/VM4-$NOW.tar.bz2" "$BACKUPDIR/$VM4/*$NOW*" && rm -r "$BACKUPDIR/$VM4/*$NOW*"
+rm -r "$BACKUPDIR/$VM4/*$DAYS_AGO*"
+
+##############################################
+mkdir -p "$BACKUPDIR/$VM5"
+sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM5" poweroff && sleep 30
+VBoxManage export "$VM5" --output "$BACKUPDIR/$VM5/$VM5-$NOW.ovf"
+sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM5"
+tar -jcvf "$BACKUPDIR/$VM5/VM5-$NOW.tar.bz2" "$BACKUPDIR/$VM5/*$NOW*" && rm -r "$BACKUPDIR/$VM5/*$NOW*"
+rm -r "$BACKUPDIR/$VM5/*$DAYS_AGO*"
+
+/etc/init.d/StartVMs start
 
 exit 0
