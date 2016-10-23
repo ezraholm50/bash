@@ -4,21 +4,20 @@ NOW=$(date +%d-%m-%y)
 DAYS_AGO=$(date -d "28 days ago"  +"%d-%m-%y")
 
 ################Backup directory##############
-BACKUPDIR="/backup/vm"
+BACKUPDIR=""
 
 ################Virtualbox user###############
-VBOXUSR="waaromzomoeilijk"
+VBOXUSR=""
 
 ################VM's #########################
-VM1="waaromzomoeilijk-nextcloud"
-VM2="waaromzomoeilijk-plesk-resize"
-VM3="OPNsense"
-VM4="nginx"
-VM5="UbuntuDesktop"
+VM1=""
+VM2=""
+VM3=""
+VM4=""
+VM5=""
 
 ################Create directorys#############
-mkdir -p /backup/
-mkdir -p /backup/vm
+mkdir -p "$BACKUPDIR"
 
 ################VM 1##########################
 mkdir -p "$BACKUPDIR"/"$VM1"
