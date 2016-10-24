@@ -7,15 +7,17 @@
 # Vars
 NOW=$(date +%d-%m-%y)
 DAYS_AGO=$(date -d "7 days ago"  +"%d-%m-%y")
-SNAPSHOT_NAME="snapshot_$NOW"
+SNAPSHOT_NAME="$NOW"
+SCRIPTS="/var/scripts"
+SNAPSHOTDIR="$SCRIPTS/snapshot-list"
 
 # Snapshot take and delete per VM
-vboxmanage snapshot "$VM1" delete snapshot_"$DAYS_AGO"
+vboxmanage snapshot "$VM1" delete "$DAYS_AGO"
 VBoxManage snapshot "$VM1" take "$SNAPSHOT_NAME"
 
 # List the current snapshots in a file
-mkdir -p /var/scripts
-mkdir -p /var/scripts/snapshot-list/
+mkdir -p "$SCRIPTS"
+mkdir -p "$SNAPSHOTDIR"
 
-VM1-LIST=$(vboxmanage snapshot "$VM1" list)
-echo "$VM1-LIST" > "/var/scripts/snapshot-list/$VM1"
+VM1LIST=$(vboxmanage snapshot "$VM1" list)
+echo "$VM1LIST" > "$SNAPSHOTDIR"/"$VM1"

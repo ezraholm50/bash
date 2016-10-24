@@ -1,7 +1,9 @@
 #!/bin/bash
 ################Date variables################
 NOW=$(date +%d-%m-%y)
-DAYS_AGO=$(date -d "28 days ago"  +"%d-%m-%y")
+# Backups older then $DAYS get removed
+DAYS="28"
+DAYS_AGO=$(date -d "$DAYS days ago"  +"%d-%m-%y")
 
 ################Backup directory##############
 BACKUPDIR=""
@@ -64,6 +66,9 @@ rm -r "$BACKUPDIR"/"$VM4"/*"$DAYS_AGO"*
 
 tar -jcvf "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM5"/*"$NOW"* && rm -r "$BACKUPDIR"/"$VM5"/*"$NOW"*
 rm -r "$BACKUPDIR"/"$VM5"/*"$DAYS_AGO"*
+
+###############Fail over delete old ovf's###
+find "$BACKUPDIR" -mtime +"$DAYS" -type f -delete
 
 ###############Start all vm's################
 /etc/init.d/StartVMs start
