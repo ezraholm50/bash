@@ -11,6 +11,11 @@ SNAPSHOT_NAME="$NOW"
 SCRIPTS="/var/scripts"
 SNAPSHOTDIR="$SCRIPTS/snapshot-list"
 
+# VM's
+VM1=""
+VM2=""
+VM3=""
+
 # Snapshot take and delete per VM
 vboxmanage snapshot "$VM1" delete "$DAYS_AGO"
 VBoxManage snapshot "$VM1" take "$SNAPSHOT_NAME"
