@@ -1,0 +1,41 @@
+#!/bin/bash
+# Place the content in /etc/init.d/StartVMs
+# This will auto start the VM's and auto savestate on reboot/shutdown
+#
+# Also run these commands:
+# Give the script executable permissions
+##### sudo chmod +x /etc/init.d/StartVMs
+# Setup the system to run on startup
+# Optional: Set script to start last (99) on startup and shutdown first on (shutdown)
+##### sudo update-rc.d StartVMs defaults 99 01
+
+### BEGIN INIT INFO
+# Provides:        StartVMs
+# Required-Start:    $local_fs $network $named $time $syslog
+# Required-Stop:    $local_fs $network $named $time $syslog
+# Default-Start:    2 3 4 5
+# Default-Stop:        0 1 6
+# Description:        Starts all VMs
+### END INIT INFO
+
+# Enter username that VM's run under
+VMUSER=""
+
+case "$1" in
+  start)
+    echo "Starting VM's"
+    # Repeat the next Line for each VM
+    sudo -H -b -u $VMUSER VBoxHeadless --startvm "virtualMachineName"
+    ;;
+  stop)
+    echo "Shutting Down VM's"
+    # Repeat the next Line for each VM
+    sudo -H -b -u $VMUSER VBoxManage controlvm "virtualMachineName" savestate
+    ;;
+  *)
+    echo "Usage: /etc/init.d/StartVMs {start|stop}"
+    exit 1
+    ;;
+esac
+
+exit 0
