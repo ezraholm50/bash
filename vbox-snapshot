@@ -10,6 +10,7 @@ DAYS_AGO=$(date -d "7 days ago"  +"%d-%m-%y")
 SNAPSHOT_NAME="$NOW"
 SCRIPTS="/var/scripts"
 SNAPSHOTDIR="$SCRIPTS/snapshot-list"
+VBOXUSR=""
 
 # VM's
 VM1=""
@@ -17,8 +18,8 @@ VM2=""
 VM3=""
 
 # Snapshot take and delete per VM
-vboxmanage snapshot "$VM1" delete "$DAYS_AGO"
-VBoxManage snapshot "$VM1" take "$SNAPSHOT_NAME"
+sudo -H -b -u "$VBOXUSR" VBoxManage snapshot "$VM1" delete "$DAYS_AGO"
+sudo -H -b -u "$VBOXUSR" VBoxManage snapshot "$VM1" take "$SNAPSHOT_NAME"
 
 # List the current snapshots in a file
 mkdir -p "$SCRIPTS"
@@ -26,3 +27,6 @@ mkdir -p "$SNAPSHOTDIR"
 
 VM1LIST=$(vboxmanage snapshot "$VM1" list)
 echo "$VM1LIST" > "$SNAPSHOTDIR"/"$VM1"
+
+# Start all vm's as safety, comment out if you dont have the startup script
+/etc/init.d/StartVMs start
