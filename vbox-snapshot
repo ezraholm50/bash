@@ -2,7 +2,6 @@
 # Create snapshot and delete backups of 7 days old
 # Should be placed in /var/scripts/
 # A list of snapshots per VM is available in: /var/scripts/snapshot-list
-# Due to an unknown bug the snapshots are not visible in virtualbox's UI
 
 # Vars
 NOW=$(date +%d-%m-%y)
