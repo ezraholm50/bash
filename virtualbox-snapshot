@@ -29,3 +29,5 @@ echo "$VM1LIST" > "$SNAPSHOTDIR"/"$VM1"
 
 # Start all vm's as safety, comment out if you dont have the startup script
 /etc/init.d/StartVMs start
+
+exit 0
