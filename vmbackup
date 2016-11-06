@@ -24,47 +24,53 @@ mkdir -p /backup/
 mkdir -p /backup/vm
 mkdir -p /backup/vm/bodywork
 
+################Permissions##################
+chmod -R 770 "$BACKUPDIR"
+chmod 755 /backup
+
+chown -R "$VBOXUSR":"$VBOXUSR" "$BACKUPDIR"
+
 ################VM 1##########################
 mkdir -p "$BACKUPDIR"/"$VM1"
 sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM1" acpipowerbutton && sleep 30
-VBoxManage export "$VM1" --output "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".ova
+sudo -H -b -u "$VBOXUSR" VBoxManage export "$VM1" --output "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".ova
 sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM1"
 
 ################VM 2##########################
 mkdir -p "$BACKUPDIR"/"$VM2"
 sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM2" acpipowerbutton && sleep 30
-VBoxManage export "$VM2" --output "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".ova
+sudo -H -b -u "$VBOXUSR" VBoxManage export "$VM2" --output "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".ova
 sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM2"
 
 ################VM 3##########################
 mkdir -p "$BACKUPDIR"/"$VM3"
 sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM3" acpipowerbutton && sleep 30
-VBoxManage export "$VM3" --output "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".ova
+sudo -H -b -u "$VBOXUSR" VBoxManage export "$VM3" --output "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".ova
 sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM3"
 
 ################VM 4##########################
 mkdir -p "$BACKUPDIR"/"$VM4"
 sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM4" acpipowerbutton && sleep 30
-VBoxManage export "$VM4" --output "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".ova
+sudo -H -b -u "$VBOXUSR" VBoxManage export "$VM4" --output "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".ova
 sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM4"
 
 ################VM 5##########################
 # Windows = poweroff
 mkdir -p "$BACKUPDIR"/"$VM5"
 sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM5" poweroff && sleep 30
-VBoxManage export "$VM5" --output "$BACKUPDIR"/bodywork/"$VM5"/"$VM5"-"$NOW".ova
+sudo -H -b -u "$VBOXUSR" VBoxManage export "$VM5" --output "$BACKUPDIR"/bodywork/"$VM5"/"$VM5"-"$NOW".ova
 sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM5"
 
 ################VM 6##########################
 mkdir -p "$BACKUPDIR"/"$VM6"
 sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM6" acpipowerbutton && sleep 30
-VBoxManage export "$VM6" --output "$BACKUPDIR"/bodywork/"$VM6"/"$VM6"-"$NOW".ova
+sudo -H -b -u "$VBOXUSR" VBoxManage export "$VM6" --output "$BACKUPDIR"/bodywork/"$VM6"/"$VM6"-"$NOW".ova
 sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM6"
 
 ################VM 7##########################
 mkdir -p "$BACKUPDIR"/"$VM7"
 sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM7" acpipowerbutton && sleep 30
-VBoxManage export "$VM7" --output "$BACKUPDIR"/bodywork/"$VM7"/"$VM7"-"$NOW".ova
+sudo -H -b -u "$VBOXUSR" VBoxManage export "$VM7" --output "$BACKUPDIR"/bodywork/"$VM7"/"$VM7"-"$NOW".ova
 sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM7"
 
 ################Compresssion##################
@@ -82,9 +88,15 @@ tar -jcvf "$BACKUPDIR"/"$VM6"/"$VM6"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM6"/"$VM6"-"
 
 tar -jcvf "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW"* && rm -r "$BACKUPDIR"/"$VM7"/*"$NOW".ova
 
-###############Fail over delete old.ova's###
+###############Delete old files##############
 sudo find $BACKUPDIR -mtime +"$DAYS" -type f -delete -print | grep -i '.*[.]ova'
 sudo find $BACKUPDIR -mtime +"$DAYS" -type f -delete -print | grep -i '.*[.]tar.bz2'
+
+################Permissions##################
+chmod -R 770 "$BACKUPDIR"
+chmod 755 /backup
+
+chown -R "$VBOXUSR":"$VBOXUSR" "$BACKUPDIR"
 
 ###############Start all vm's################
 /etc/init.d/StartVMs start
