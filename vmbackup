@@ -1,12 +1,11 @@
 #!/bin/bash
 ################Date variables################
 NOW=$(date +%d-%m-%y)
-# Backups older then $DAYS get removed
 DAYS="28"
 DAYS_AGO=$(date -d "$DAYS days ago"  +"%d-%m-%y")
 
 ################Backup directory##############
-BACKUPDIR=""
+BACKUPDIR="/backup/vm"
 
 ################Virtualbox user###############
 VBOXUSR=""
@@ -17,58 +16,75 @@ VM2=""
 VM3=""
 VM4=""
 VM5=""
+VM6=""
+VM7=""
 
 ################Create directorys#############
-mkdir -p "$BACKUPDIR"
+mkdir -p /backup/
+mkdir -p /backup/vm
+mkdir -p /backup/vm/bodywork
 
 ################VM 1##########################
 mkdir -p "$BACKUPDIR"/"$VM1"
 sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM1" acpipowerbutton && sleep 30
-VBoxManage export "$VM1" --output "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".ovf
+VBoxManage export "$VM1" --output "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".ova
 sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM1"
 
 ################VM 2##########################
 mkdir -p "$BACKUPDIR"/"$VM2"
 sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM2" acpipowerbutton && sleep 30
-VBoxManage export "$VM2" --output "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".ovf
+VBoxManage export "$VM2" --output "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".ova
 sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM2"
 
 ################VM 3##########################
 mkdir -p "$BACKUPDIR"/"$VM3"
 sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM3" acpipowerbutton && sleep 30
-VBoxManage export "$VM3" --output "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".ovf
+VBoxManage export "$VM3" --output "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".ova
 sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM3"
 
 ################VM 4##########################
 mkdir -p "$BACKUPDIR"/"$VM4"
 sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM4" acpipowerbutton && sleep 30
-VBoxManage export "$VM4" --output "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".ovf
+VBoxManage export "$VM4" --output "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".ova
 sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM4"
 
 ################VM 5##########################
+# Windows = poweroff
 mkdir -p "$BACKUPDIR"/"$VM5"
 sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM5" poweroff && sleep 30
-VBoxManage export "$VM5" --output "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".ovf
+VBoxManage export "$VM5" --output "$BACKUPDIR"/bodywork/"$VM5"/"$VM5"-"$NOW".ova
 sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM5"
 
+################VM 6##########################
+mkdir -p "$BACKUPDIR"/"$VM6"
+sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM6" acpipowerbutton && sleep 30
+VBoxManage export "$VM6" --output "$BACKUPDIR"/bodywork/"$VM6"/"$VM6"-"$NOW".ova
+sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM6"
+
+################VM 7##########################
+mkdir -p "$BACKUPDIR"/"$VM7"
+sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM7" acpipowerbutton && sleep 30
+VBoxManage export "$VM7" --output "$BACKUPDIR"/bodywork/"$VM7"/"$VM7"-"$NOW".ova
+sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM7"
+
 ################Compresssion##################
-tar -jcvf "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW"* && rm -r "$BACKUPDIR"/"$VM1"/*"$NOW"*
-rm -r "$BACKUPDIR"/"$VM1"/*"$DAYS_AGO"*
+tar -jcvf "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW"* && rm -r "$BACKUPDIR"/"$VM1"/*"$NOW".ova
 
-tar -jcvf "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM2"/*"$NOW"* && rm -r "$BACKUPDIR"/"$VM2"/*"$NOW"*
-rm -r "$BACKUPDIR"/"$VM2"/*"$DAYS_AGO"*
+tar -jcvf "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW"* && rm -r "$BACKUPDIR"/"$VM2"/*"$NOW".ova
 
-tar -jcvf "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM3"/*"$NOW"* && rm -r "$BACKUPDIR"/"$VM3"/*"$NOW"*
-rm -r "$BACKUPDIR"/"$VM3"/*"$DAYS_AGO"*
+tar -jcvf "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW"* && rm -r "$BACKUPDIR"/"$VM3"/*"$NOW".ova
 
-tar -jcvf "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM4"/*"$NOW"* && rm -r "$BACKUPDIR"/"$VM4"/*"$NOW"*
-rm -r "$BACKUPDIR"/"$VM4"/*"$DAYS_AGO"*
+tar -jcvf "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW"* && rm -r "$BACKUPDIR"/"$VM4"/*"$NOW".ova
 
-tar -jcvf "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM5"/*"$NOW"* && rm -r "$BACKUPDIR"/"$VM5"/*"$NOW"*
-rm -r "$BACKUPDIR"/"$VM5"/*"$DAYS_AGO"*
+tar -jcvf "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW"* && rm -r "$BACKUPDIR"/"$VM5"/*"$NOW".ova
 
-###############Fail over delete old ovf's###
-find "$BACKUPDIR" -mtime +"$DAYS" -type f -delete
+tar -jcvf "$BACKUPDIR"/"$VM6"/"$VM6"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM6"/"$VM6"-"$NOW"* && rm -r "$BACKUPDIR"/"$VM6"/*"$NOW".ova
+
+tar -jcvf "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW"* && rm -r "$BACKUPDIR"/"$VM7"/*"$NOW".ova
+
+###############Fail over delete old.ova's###
+sudo find $BACKUPDIR -mtime +"$DAYS" -type f -delete -print | grep -i '.*[.]ova'
+sudo find $BACKUPDIR -mtime +"$DAYS" -type f -delete -print | grep -i '.*[.]tar.bz2'
 
 ###############Start all vm's################
 /etc/init.d/StartVMs start
