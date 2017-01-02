@@ -27,7 +27,6 @@ VM6=""
 VM7=""
 
 ################Whiptail size#################
-
 calc_wt_size() {
   WT_HEIGHT=17
   WT_WIDTH=$(tput cols)
