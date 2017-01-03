@@ -1,0 +1,298 @@
+#!/bin/bash
+# Backup script for Virtualbox 5.1 on Ubuntu 16.04 add it to Crontab to run automatically.
+# Backups in .ova format then compresses it to .tar.bz2 then deletes the .ova files
+
+################Date variables################
+NOW=$(date +%d-%m-%y)
+# How long do you want to keep backups?
+DAYS="28"
+DAYS_AGO=$(date -d "$DAYS days ago"  +"%d-%m-%y")
+
+################Backup directory##############
+BACKUPDIR="/backup/vm"
+# Remove trailing forward slash (for IF equals)
+BACKUPDIREQUAL="backup/vm"
+
+################Virtualbox user###############
+VBOXUSR=""
+VBOXGROUP=""
+
+################VM's #########################
+VM1=""
+VM2=""
+VM3=""
+VM4=""
+VM5=""
+VM6=""
+VM7=""
+
+################Whiptail size#################
+calc_wt_size() {
+  WT_HEIGHT=17
+  WT_WIDTH=$(tput cols)
+
+  if [ -z "$WT_WIDTH" ] || [ "$WT_WIDTH" -lt 60 ]; then
+    WT_WIDTH=80
+  fi
+  if [ "$WT_WIDTH" -gt 178 ]; then
+    WT_WIDTH=120
+  fi
+  WT_MENU_HEIGHT=$((WT_HEIGHT-7))
+}
+
+################Check if root#################
+if [ "$(whoami)" != "root" ]; then
+        whiptail --msgbox "Sorry you are not root. You must type: sudo techandtool" "$WT_HEIGHT" "$WT_WIDTH"
+        exit
+fi
+
+###############Whiptail check##################
+if [ $(dpkg-query -W -f='${Status}' whiptail 2>/dev/null | grep -c "ok installed") -eq 1 ]; then
+        echo "Whiptail is already installed..."
+        clear
+else
+
+    {
+    i=1
+    while read -r line; do
+        i=$(( i + 1 ))
+        echo $i
+    done < <(apt-get install whiptail -y)
+  } | whiptail --title "Progress" --gauge "Please wait while installing Whiptail..." 6 60 0
+
+fi
+
+##############Check Ubuntu OS#################
+DISTRO=$(lsb_release -sd | cut -d ' ' -f 2)
+version(){
+    local h t v
+
+    [[ $2 = "$1" || $2 = "$3" ]] && return 0
+
+    v=$(printf '%s\n' "$@" | sort -V)
+    h=$(head -n1 <<<"$v")
+    t=$(tail -n1 <<<"$v")
+
+    [[ $2 != "$h" && $2 != "$t" ]]
+}
+
+if ! version 16.04 "$DISTRO" 16.04.10; then
+    whiptail --msgbox "Ubuntu version $DISTRO is tested on 16.04 - 16.04.10 no support is given for other releases." "$WT_HEIGHT" "$WT_WIDTH"
+    #exit
+fi
+
+if [ $(dpkg-query -W -f='${Status}' ubuntu-server 2>/dev/null | grep -c "ok installed") -eq 0 ];
+then
+  	whiptail --msgbox "'ubuntu-server' is not installed, this doesn't seem to be a server. No support is given..." "$WT_HEIGHT" "$WT_WIDTH"
+    #exit
+fi
+
+################Create directorys#############
+mkdir -p /backup/
+mkdir -p /backup/vm
+
+################Permissions##################
+chmod -R 770 "$BACKUPDIR"
+chmod 755 /backup
+
+chown -R "$VBOXUSR":"$VBOXUSR" "$BACKUPDIR"
+
+################VM 1##########################
+mkdir -p "$BACKUPDIR"/"$VM1"
+sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM1" acpipowerbutton && sleep 30
+sudo -H -b -u "$VBOXUSR" VBoxManage export "$VM1" --output "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".ova
+sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM1"
+
+################VM 2##########################
+mkdir -p "$BACKUPDIR"/"$VM2"
+sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM2" acpipowerbutton && sleep 30
+sudo -H -b -u "$VBOXUSR" VBoxManage export "$VM2" --output "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".ova
+sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM2"
+
+################VM 3##########################
+mkdir -p "$BACKUPDIR"/"$VM3"
+sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM3" acpipowerbutton && sleep 30
+sudo -H -b -u "$VBOXUSR" VBoxManage export "$VM3" --output "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".ova
+sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM3"
+
+################VM 4##########################
+mkdir -p "$BACKUPDIR"/"$VM4"
+sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM4" acpipowerbutton && sleep 30
+sudo -H -b -u "$VBOXUSR" VBoxManage export "$VM4" --output "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".ova
+sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM4"
+
+################VM 5##########################
+mkdir -p "$BACKUPDIR"/bodywork/"$VM5"
+# Windows doesn't let you acpipowerbutton so unfortunatly only a poweroff would work at this time
+sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM5" poweroff && sleep 30
+sudo -H -b -u "$VBOXUSR" VBoxManage export "$VM5" --output "$BACKUPDIR"/bodywork/"$VM5"/"$VM5"-"$NOW".ova
+sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM5"
+
+################VM 6##########################
+mkdir -p "$BACKUPDIR"/bodywork/"$VM6"
+sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM6" acpipowerbutton && sleep 30
+sudo -H -b -u "$VBOXUSR" VBoxManage export "$VM6" --output "$BACKUPDIR"/bodywork/"$VM6"/"$VM6"-"$NOW".ova
+sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM6"
+
+################VM 7##########################
+mkdir -p "$BACKUPDIR"/bodywork/"$VM7"
+sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM7" acpipowerbutton && sleep 30
+sudo -H -b -u "$VBOXUSR" VBoxManage export "$VM7" --output "$BACKUPDIR"/bodywork/"$VM7"/"$VM7"-"$NOW".ova
+sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM7"
+
+################Compresssion##################
+# VM1
+VM1TAR=$(tar tf "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".tar.bz2)
+VM1OVA=""$BACKUPDIREQUAL"/"$VM1"/"$VM1"-"$NOW".ova"
+
+tar -jcvf "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".ova
+
+if [ "$VM1TAR" == "$VM1OVA" ]; then
+        rm -r "$BACKUPDIR"/"$VM1"/*"$NOW".ova
+        echo "########## TAR creation of VM1 done! ############"
+else
+        rm "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".tar.bz2
+        tar -jcvf "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".ova
+                        # second try
+                        if [ "$VM1TAR" == "$VM1OVA" ]; then
+                        rm -r "$BACKUPDIR"/"$VM1"/*"$NOW".ova
+                else
+                        rm "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".tar.bz2
+                        tar -jcvf "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".ova
+                fi
+fi
+
+# VM2
+VM2TAR=$(tar tf "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".tar.bz2)
+VM2OVA=""$BACKUPDIREQUAL"/"$VM2"/"$VM2"-"$NOW".ova"
+
+tar -jcvf "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".ova
+
+if [ "$VM2TAR" == "$VM2OVA" ]; then
+        rm -r "$BACKUPDIR"/"$VM2"/*"$NOW".ova
+        echo "########## TAR creation of VM2 done! ############"
+else
+        rm "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".tar.bz2
+        tar -jcvf "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".ova
+                        # second try
+                        if [ "$VM2TAR" == "$VM2OVA" ]; then
+                        rm -r "$BACKUPDIR"/"$VM2"/*"$NOW".ova
+                else
+                        rm "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".tar.bz2
+                        tar -jcvf "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".ova
+                fi
+fi
+
+# VM3
+VM3TAR=$(tar tf "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".tar.bz2)
+VM3OVA=""$BACKUPDIREQUAL"/"$VM3"/"$VM3"-"$NOW".ova"
+
+tar -jcvf "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".ova
+
+if [ "$VM3TAR" == "$VM3OVA" ]; then
+        rm -r "$BACKUPDIR"/"$VM3"/*"$NOW".ova
+        echo "########## TAR creation of VM3 done! ############"
+else
+        rm "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".tar.bz2
+        tar -jcvf "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".ova
+                        # second try
+                        if [ "$VM3TAR" == "$VM3OVA" ]; then
+                        rm -r "$BACKUPDIR"/"$VM3"/*"$NOW".ova
+                else
+                        rm "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".tar.bz2
+                        tar -jcvf "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".ova
+                fi
+fi
+
+# VM4
+VM4TAR=$(tar tf "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".tar.bz2)
+VM4OVA=""$BACKUPDIREQUAL"/"$VM4"/"$VM4"-"$NOW".ova"
+
+tar -jcvf "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".ova
+
+if [ "$VM4TAR" == "$VM4OVA" ]; then
+        rm -r "$BACKUPDIR"/"$VM4"/*"$NOW".ova
+        echo "########## TAR creation of VM4 done! ############"
+else
+        rm "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".tar.bz2
+        tar -jcvf "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".ova
+                        # second try
+                        if [ "$VM4TAR" == "$VM4OVA" ]; then
+                        rm -r "$BACKUPDIR"/"$VM4"/*"$NOW".ova
+                else
+                        rm "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".tar.bz2
+                        tar -jcvf "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".ova
+                fi
+fi
+
+# VM5
+VM5TAR=$(tar tf "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".tar.bz2)
+VM5OVA=""$BACKUPDIREQUAL"/"$VM5"/"$VM5"-"$NOW".ova"
+
+tar -jcvf "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".ova
+
+if [ "$VM5TAR" == "$VM5OVA" ]; then
+        rm -r "$BACKUPDIR"/"$VM5"/*"$NOW".ova
+        echo "########## TAR creation of VM5 done! ############"
+else
+        rm "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".tar.bz2
+        tar -jcvf "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".ova
+                        # second try
+                        if [ "$VM5TAR" == "$VM5OVA" ]; then
+                        rm -r "$BACKUPDIR"/"$VM5"/*"$NOW".ova
+                else
+                        rm "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".tar.bz2
+                        tar -jcvf "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".ova
+                fi
+fi
+
+# VM6
+VM6TAR=$(tar tf "$BACKUPDIR"/"$VM6"/"$VM6"-"$NOW".tar.bz2)
+VM6OVA=""$BACKUPDIREQUAL"/"$VM6"/"$VM6"-"$NOW".ova"
+
+tar -jcvf "$BACKUPDIR"/"$VM6"/"$VM6"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM6"/"$VM6"-"$NOW".ova
+
+if [ "$VM6TAR" == "$VM6OVA" ]; then
+        rm -r "$BACKUPDIR"/"$VM6"/*"$NOW".ova
+        echo "########## TAR creation of VM6 done! ############"
+else
+        rm "$BACKUPDIR"/"$VM6"/"$VM6"-"$NOW".tar.bz2
+        tar -jcvf "$BACKUPDIR"/"$VM6"/"$VM6"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM6"/"$VM6"-"$NOW".ova
+                        # second try
+                        if [ "$VM6TAR" == "$VM6OVA" ]; then
+                        rm -r "$BACKUPDIR"/"$VM6"/*"$NOW".ova
+                else
+                        rm "$BACKUPDIR"/"$VM6"/"$VM6"-"$NOW".tar.bz2
+                        tar -jcvf "$BACKUPDIR"/"$VM6"/"$VM6"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM6"/"$VM6"-"$NOW".ova
+                fi
+fi
+
+# VM7
+VM7TAR=$(tar tf "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW".tar.bz2)
+VM7OVA=""$BACKUPDIREQUAL"/"$VM7"/"$VM7"-"$NOW".ova"
+
+tar -jcvf "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW".ova
+
+if [ "$VM7TAR" == "$VM7OVA" ]; then
+        rm -r "$BACKUPDIR"/"$VM7"/*"$NOW".ova
+        echo "########## TAR creation of VM7 done! ############"
+else
+        rm "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW".tar.bz2
+        tar -jcvf "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW".ova
+                        # second try
+                        if [ "$VM7TAR" == "$VM7OVA" ]; then
+                        rm -r "$BACKUPDIR"/"$VM7"/*"$NOW".ova
+                else
+                        rm "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW".tar.bz2
+                        tar -jcvf "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW".ova
+                fi
+fi
+
+###############Fail over delete old.ova's###
+sudo find $BACKUPDIR -mtime +"$DAYS" -type f -delete -print | grep -i '.*[.]ova'
+sudo find $BACKUPDIR -mtime +"$DAYS" -type f -delete -print | grep -i '.*[.]tar.bz2'
+
+###############Start all vm's################
+/etc/init.d/StartVMs start
+
+exit 0

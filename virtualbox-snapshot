@@ -2,13 +2,12 @@
 # Create snapshot and delete backups of 7 days old
 # Should be placed in /var/scripts/
 # A list of snapshots per VM is available in: /var/scripts/snapshot-list
+# Due to an unknown bug the snapshots are not visible in virtualbox's UI
 
-# Vars
+# variables
 NOW=$(date +%d-%m-%y)
-DAYS_AGO=$(date -d "7 days ago"  +"%d-%m-%y")
+DAYS_AGO=$(date -d "7 days ago" +"%d-%m-%y")
 SNAPSHOT_NAME="$NOW"
-SCRIPTS="/var/scripts"
-SNAPSHOTDIR="$SCRIPTS/snapshot-list"
 VBOXUSR=""
 
 # VM's
@@ -18,16 +17,27 @@ VM3=""
 
 # Snapshot take and delete per VM
 sudo -H -b -u "$VBOXUSR" VBoxManage snapshot "$VM1" delete "$DAYS_AGO"
+sleep 300
 sudo -H -b -u "$VBOXUSR" VBoxManage snapshot "$VM1" take "$SNAPSHOT_NAME"
 
+sudo -H -b -u "$VBOXUSR" VBoxManage snapshot "$VM2" delete "$DAYS_AGO"
+sleep 300
+sudo -H -b -u "$VBOXUSR" VBoxManage snapshot "$VM2" take "$SNAPSHOT_NAME"
+
+sudo -H -b -u "$VBOXUSR" VBoxManage snapshot "$VM3" delete "$DAYS_AGO"
+sleep 300
+sudo -H -b -u "$VBOXUSR" VBoxManage snapshot "$VM3" take "$SNAPSHOT_NAME"
+
 # List the current snapshots in a file
-mkdir -p "$SCRIPTS"
-mkdir -p "$SNAPSHOTDIR"
+mkdir -p /var/scripts/snapshot-list/
 
-VM1LIST=$(vboxmanage snapshot "$VM1" list)
-echo "$VM1LIST" > "$SNAPSHOTDIR"/"$VM1"
+NGINX=$(vboxmanage snapshot nginx list)
+echo "$NGINX" > /var/scripts/snapshot-list/nginx
 
-# Start all vm's as safety, comment out if you dont have the startup script
+PLESK=$(vboxmanage snapshot plesk list)
+echo "$PLESK" > /var/scripts/snapshot-list/plesk
+
+NEXTCLOUD=$(vboxmanage snapshot nextcloud list)
+echo "$NEXTCLOUD" > /var/scripts/snapshot-list/nextcloud
+
 /etc/init.d/StartVMs start
-
-exit 0
