@@ -1,32 +1,24 @@
 #!/bin/bash
-# Backup script for Virtualbox 5.1 on Ubuntu 16.04 add it to Crontab to run automatically.
-# Backups in .ova format then compresses it to .tar.bz2 then deletes the .ova files
+# Collabora auto installer
 
-################Date variables################
-NOW=$(date +%d-%m-%y)
-# How long do you want to keep backups?
-DAYS="28"
-DAYS_AGO=$(date -d "$DAYS days ago"  +"%d-%m-%y")
+## Variable's
+# Docker URL
+DOMAIN=$(whiptail --title "Techandme.se Collabora" --inputbox "Nextcloud url, make sure it looks like this: cloud\\.yourdomain\\.com" "$WT_HEIGHT" "$WT_WIDTH" cloud\\.yourdomain\\.com 3>&1 1>&2 2>&3)
+# Letsencrypt domains (we need to find a solution to add this Letsencrypt request to the main request for the NC domain)
+CLEANDOMAIN=$(whiptail --title "Techandme.se Collabora" --inputbox "Nextcloud url, now make sure it look normal" "$WT_HEIGHT" "$WT_WIDTH" cloud.yourdomain.com 3>&1 1>&2 2>&3)
+EDITORDOMAIN=$(whiptail --title "Techandme.se Collabora" --inputbox "Collabora subdomain eg: office.yourdomain.com" "$WT_HEIGHT" "$WT_WIDTH" 3>&1 1>&2 2>&3)
+# Vhosts
+HTTPS_EXIST="/etc/apache2/sites-available/$CLEANDOMAIN.conf"
+HTTPS_CONF="/etc/apache2/sites-available/$EDITORDOMAIN.conf"
+# Letsencrypt
+LETSENCRYPTPATH=/etc/letsencrypt
+CERTFILES=$LETSENCRYPTPATH/live
+# WANIP
+WANIP4=$(dig +short myip.opendns.com @resolver1.opendns.com)
+# Misc
+SCRIPTS=/var/scripts
 
-################Backup directory##############
-BACKUPDIR="/backup/vm"
-# Remove trailing forward slash (for IF equals)
-BACKUPDIREQUAL="backup/vm"
-
-################Virtualbox user###############
-VBOXUSR=""
-VBOXGROUP=""
-
-################VM's #########################
-VM1=""
-VM2=""
-VM3=""
-VM4=""
-VM5=""
-VM6=""
-VM7=""
-
-################Whiptail size#################
+# Whiptail auto size
 calc_wt_size() {
   WT_HEIGHT=17
   WT_WIDTH=$(tput cols)
@@ -40,259 +32,155 @@ calc_wt_size() {
   WT_MENU_HEIGHT=$((WT_HEIGHT-7))
 }
 
-################Check if root#################
-if [ "$(whoami)" != "root" ]; then
-        whiptail --msgbox "Sorry you are not root. You must type: sudo techandtool" "$WT_HEIGHT" "$WT_WIDTH"
-        exit
+# Notification
+whiptail --msgbox "Please before you start make sure port 443 is directly forwarded to this machine or open!" "$WT_HEIGHT" "$WT_WIDTH"
+
+# Check if 443 is open using nmap, if not notify the user
+if [ $(dpkg-query -W -f='${Status}' nmap 2>/dev/null | grep -c "ok installed") -eq 1 ]; then
+      echo "network-manager-openvpn is already installed..."
+      clear
+else
+    apt install nmap -y
 fi
 
-###############Whiptail check##################
-if [ $(dpkg-query -W -f='${Status}' whiptail 2>/dev/null | grep -c "ok installed") -eq 1 ]; then
-        echo "Whiptail is already installed..."
-        clear
+if [ $(nmap -sS -p 443 "$WANIP4" | grep -c "open") -eq 1 ]; then
+  echo "Port is open"
+  apt remove --purge nmap -y
+else
+  whiptail --msgbox "Port 443 is not open..." "$WT_HEIGHT" "$WT_WIDTH"
+  apt remove --purge nmap -y
+  exit
+fi
+
+# Update & upgrade
+apt update
+apt upgrade -y
+apt -f install -y
+
+# Check if docker is installed
+	if [ $(dpkg-query -W -f='${Status}' docker.io 2>/dev/null | grep -c "ok installed") -eq 1 ]; then
+				echo "Docker.io is installed..."
+else
+				apt install docker.io -y
+fi
+
+	if [ $(dpkg-query -W -f='${Status}' git 2>/dev/null | grep -c "ok installed") -eq 1 ]; then
+				echo "Git is installed..."
+else
+				apt install git -y
+fi
+
+# Install Collabora docker
+docker pull collabora/code
+docker run -t -d -p 127.0.0.1:9980:9980 -e "domain=$DOMAIN" --restart always --cap-add MKNOD collabora/code
+
+# Install Apache2
+	if [ $(dpkg-query -W -f='${Status}' apache2 2>/dev/null | grep -c "ok installed") -eq 1 ];
+then
+        echo "Apache2 is installed..."
 else
 
     {
     i=1
     while read -r line; do
-        i=$(( i + 1 ))
+        i=$(( $i + 1 ))
         echo $i
-    done < <(apt-get install whiptail -y)
-  } | whiptail --title "Progress" --gauge "Please wait while installing Whiptail..." 6 60 0
+    done < <(apt install apache2 -y)
+    } | whiptail --title "Progress" --gauge "Please wait while installing Apache2" 6 60 0
 
 fi
 
-##############Check Ubuntu OS#################
-DISTRO=$(lsb_release -sd | cut -d ' ' -f 2)
-version(){
-    local h t v
+# Enable Apache2 module's
+a2enmod proxy
+a2enmod proxy_wstunnel
+a2enmod proxy_http
+a2enmod ssl
 
-    [[ $2 = "$1" || $2 = "$3" ]] && return 0
-
-    v=$(printf '%s\n' "$@" | sort -V)
-    h=$(head -n1 <<<"$v")
-    t=$(tail -n1 <<<"$v")
-
-    [[ $2 != "$h" && $2 != "$t" ]]
-}
-
-if ! version 16.04 "$DISTRO" 16.04.10; then
-    whiptail --msgbox "Ubuntu version $DISTRO is tested on 16.04 - 16.04.10 no support is given for other releases." "$WT_HEIGHT" "$WT_WIDTH"
-    #exit
-fi
-
-if [ $(dpkg-query -W -f='${Status}' ubuntu-server 2>/dev/null | grep -c "ok installed") -eq 0 ];
+# Create Vhost for Collabora online in Apache2
+if [ -f "$HTTPS_CONF" ];
 then
-  	whiptail --msgbox "'ubuntu-server' is not installed, this doesn't seem to be a server. No support is given..." "$WT_HEIGHT" "$WT_WIDTH"
-    #exit
-fi
-
-################Create directorys#############
-mkdir -p /backup/
-mkdir -p /backup/vm
-
-################Permissions##################
-chmod -R 770 "$BACKUPDIR"
-chmod 755 /backup
-
-chown -R "$VBOXUSR":"$VBOXUSR" "$BACKUPDIR"
-
-################VM 1##########################
-mkdir -p "$BACKUPDIR"/"$VM1"
-sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM1" acpipowerbutton && sleep 30
-sudo -H -b -u "$VBOXUSR" VBoxManage export "$VM1" --output "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".ova
-sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM1"
-
-################VM 2##########################
-mkdir -p "$BACKUPDIR"/"$VM2"
-sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM2" acpipowerbutton && sleep 30
-sudo -H -b -u "$VBOXUSR" VBoxManage export "$VM2" --output "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".ova
-sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM2"
-
-################VM 3##########################
-mkdir -p "$BACKUPDIR"/"$VM3"
-sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM3" acpipowerbutton && sleep 30
-sudo -H -b -u "$VBOXUSR" VBoxManage export "$VM3" --output "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".ova
-sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM3"
-
-################VM 4##########################
-mkdir -p "$BACKUPDIR"/"$VM4"
-sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM4" acpipowerbutton && sleep 30
-sudo -H -b -u "$VBOXUSR" VBoxManage export "$VM4" --output "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".ova
-sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM4"
-
-################VM 5##########################
-mkdir -p "$BACKUPDIR"/bodywork/"$VM5"
-# Windows doesn't let you acpipowerbutton so unfortunatly only a poweroff would work at this time
-sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM5" poweroff && sleep 30
-sudo -H -b -u "$VBOXUSR" VBoxManage export "$VM5" --output "$BACKUPDIR"/bodywork/"$VM5"/"$VM5"-"$NOW".ova
-sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM5"
-
-################VM 6##########################
-mkdir -p "$BACKUPDIR"/bodywork/"$VM6"
-sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM6" acpipowerbutton && sleep 30
-sudo -H -b -u "$VBOXUSR" VBoxManage export "$VM6" --output "$BACKUPDIR"/bodywork/"$VM6"/"$VM6"-"$NOW".ova
-sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM6"
-
-################VM 7##########################
-mkdir -p "$BACKUPDIR"/bodywork/"$VM7"
-sudo -H -b -u "$VBOXUSR" VBoxManage controlvm "$VM7" acpipowerbutton && sleep 30
-sudo -H -b -u "$VBOXUSR" VBoxManage export "$VM7" --output "$BACKUPDIR"/bodywork/"$VM7"/"$VM7"-"$NOW".ova
-sudo -H -b -u "$VBOXUSR" VBoxHeadless --startvm "$VM7"
-
-################Compresssion##################
-# VM1
-VM1TAR=$(tar tf "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".tar.bz2)
-VM1OVA=""$BACKUPDIREQUAL"/"$VM1"/"$VM1"-"$NOW".ova"
-
-tar -jcvf "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".ova
-
-if [ "$VM1TAR" == "$VM1OVA" ]; then
-        rm -r "$BACKUPDIR"/"$VM1"/*"$NOW".ova
-        echo "########## TAR creation of VM1 done! ############"
+        echo "Virtual Host exists"
 else
-        rm "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".tar.bz2
-        tar -jcvf "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".ova
-                        # second try
-                        if [ "$VM1TAR" == "$VM1OVA" ]; then
-                        rm -r "$BACKUPDIR"/"$VM1"/*"$NOW".ova
-                else
-                        rm "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".tar.bz2
-                        tar -jcvf "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM1"/"$VM1"-"$NOW".ova
-                fi
-fi
 
-# VM2
-VM2TAR=$(tar tf "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".tar.bz2)
-VM2OVA=""$BACKUPDIREQUAL"/"$VM2"/"$VM2"-"$NOW".ova"
+	touch "$HTTPS_CONF"
+        cat << HTTPS_CREATE > "$HTTPS_CONF"
+<VirtualHost *:443>
+  ServerName $EDITORDOMAIN:443
 
-tar -jcvf "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".ova
+  # SSL configuration, you may want to take the easy route instead and use Lets Encrypt!
+  SSLEngine on
+  SSLCertificateChainFile $CERTFILES/$CLEANDOMAIN/chain.pem
+  SSLCertificateFile $CERTFILES/$CLEANDOMAIN/cert.pem
+  SSLCertificateKeyFile $CERTFILES/$CLEANDOMAIN/privkey.pem
+  SSLProtocol             all -SSLv2 -SSLv3
+  SSLCipherSuite ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS
+  SSLHonorCipherOrder     on
 
-if [ "$VM2TAR" == "$VM2OVA" ]; then
-        rm -r "$BACKUPDIR"/"$VM2"/*"$NOW".ova
-        echo "########## TAR creation of VM2 done! ############"
+  # Encoded slashes need to be allowed
+  AllowEncodedSlashes On
+
+  # Container uses a unique non-signed certificate
+  SSLProxyEngine On
+  SSLProxyVerify None
+  SSLProxyCheckPeerCN Off
+  SSLProxyCheckPeerName Off
+
+  # keep the host
+  ProxyPreserveHost On
+
+  # static html, js, images, etc. served from loolwsd
+  # loleaflet is the client part of LibreOffice Online
+  ProxyPass           /loleaflet https://127.0.0.1:9980/loleaflet retry=0
+  ProxyPassReverse    /loleaflet https://127.0.0.1:9980/loleaflet
+
+  # WOPI discovery URL
+  ProxyPass           /hosting/discovery https://127.0.0.1:9980/hosting/discovery retry=0
+  ProxyPassReverse    /hosting/discovery https://127.0.0.1:9980/hosting/discovery
+
+  # Main websocket
+  ProxyPassMatch   "/lool/(.*)/ws$"      wss://127.0.0.1:9980/lool/$1/ws
+
+  # Admin Console websocket
+  ProxyPass   /lool/adminws wss://127.0.0.1:9980/lool/adminws
+
+  # Download as, Fullscreen presentation and Image upload operations
+  ProxyPass           /lool https://127.0.0.1:9980/lool
+ProxyPassReverse /lool https://127.0.0.1:9980/lool
+</VirtualHost>
+HTTPS_CREATE
+
+if [ -f "$HTTPS_CONF" ];
+then
+        echo "$HTTPS_CONF was successfully created"
+        sleep 2
 else
-        rm "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".tar.bz2
-        tar -jcvf "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".ova
-                        # second try
-                        if [ "$VM2TAR" == "$VM2OVA" ]; then
-                        rm -r "$BACKUPDIR"/"$VM2"/*"$NOW".ova
-                else
-                        rm "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".tar.bz2
-                        tar -jcvf "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM2"/"$VM2"-"$NOW".ova
-                fi
+	echo "Unable to create vhost, exiting..."
+	exit
 fi
 
-# VM3
-VM3TAR=$(tar tf "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".tar.bz2)
-VM3OVA=""$BACKUPDIREQUAL"/"$VM3"/"$VM3"-"$NOW".ova"
+fi
 
-tar -jcvf "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".ova
+# Let's Encrypt
 
-if [ "$VM3TAR" == "$VM3OVA" ]; then
-        rm -r "$BACKUPDIR"/"$VM3"/*"$NOW".ova
-        echo "########## TAR creation of VM3 done! ############"
+# Stop Apache to aviod port conflicts
+a2dissite 000-default.conf
+sudo service apache2 stop
+
+############################### Still need to rewrite test-new-config.sh for collabora domain and add more tries for letsencrypt
+# Generate certs
+cd /etc
+git clone https://github.com/certbot/certbot.git
+cd /etc/certbot
+./letsencrypt-auto certonly --agree-tos --standalone -d $CLEANDOMAIN
+# Check if $certfiles exists
+if [ -d "$HTTPS_CONF" ]
+then
+    echo -e "\e[96m"
+    echo -e "Certs are generated!"
 else
-        rm "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".tar.bz2
-        tar -jcvf "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".ova
-                        # second try
-                        if [ "$VM3TAR" == "$VM3OVA" ]; then
-                        rm -r "$BACKUPDIR"/"$VM3"/*"$NOW".ova
-                else
-                        rm "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".tar.bz2
-                        tar -jcvf "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM3"/"$VM3"-"$NOW".ova
-                fi
+    echo -e "\e[96m"
+    echo -e "It seems like no certs were generated, please upload your logs to https://github.com/nextcloud/vm"
+    echo -e "\e[32m"
+    read -p "Press any key to continue... " -n1 -s
+    echo -e "\e[0m"
 fi
-
-# VM4
-VM4TAR=$(tar tf "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".tar.bz2)
-VM4OVA=""$BACKUPDIREQUAL"/"$VM4"/"$VM4"-"$NOW".ova"
-
-tar -jcvf "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".ova
-
-if [ "$VM4TAR" == "$VM4OVA" ]; then
-        rm -r "$BACKUPDIR"/"$VM4"/*"$NOW".ova
-        echo "########## TAR creation of VM4 done! ############"
-else
-        rm "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".tar.bz2
-        tar -jcvf "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".ova
-                        # second try
-                        if [ "$VM4TAR" == "$VM4OVA" ]; then
-                        rm -r "$BACKUPDIR"/"$VM4"/*"$NOW".ova
-                else
-                        rm "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".tar.bz2
-                        tar -jcvf "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM4"/"$VM4"-"$NOW".ova
-                fi
-fi
-
-# VM5
-VM5TAR=$(tar tf "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".tar.bz2)
-VM5OVA=""$BACKUPDIREQUAL"/"$VM5"/"$VM5"-"$NOW".ova"
-
-tar -jcvf "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".ova
-
-if [ "$VM5TAR" == "$VM5OVA" ]; then
-        rm -r "$BACKUPDIR"/"$VM5"/*"$NOW".ova
-        echo "########## TAR creation of VM5 done! ############"
-else
-        rm "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".tar.bz2
-        tar -jcvf "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".ova
-                        # second try
-                        if [ "$VM5TAR" == "$VM5OVA" ]; then
-                        rm -r "$BACKUPDIR"/"$VM5"/*"$NOW".ova
-                else
-                        rm "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".tar.bz2
-                        tar -jcvf "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM5"/"$VM5"-"$NOW".ova
-                fi
-fi
-
-# VM6
-VM6TAR=$(tar tf "$BACKUPDIR"/"$VM6"/"$VM6"-"$NOW".tar.bz2)
-VM6OVA=""$BACKUPDIREQUAL"/"$VM6"/"$VM6"-"$NOW".ova"
-
-tar -jcvf "$BACKUPDIR"/"$VM6"/"$VM6"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM6"/"$VM6"-"$NOW".ova
-
-if [ "$VM6TAR" == "$VM6OVA" ]; then
-        rm -r "$BACKUPDIR"/"$VM6"/*"$NOW".ova
-        echo "########## TAR creation of VM6 done! ############"
-else
-        rm "$BACKUPDIR"/"$VM6"/"$VM6"-"$NOW".tar.bz2
-        tar -jcvf "$BACKUPDIR"/"$VM6"/"$VM6"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM6"/"$VM6"-"$NOW".ova
-                        # second try
-                        if [ "$VM6TAR" == "$VM6OVA" ]; then
-                        rm -r "$BACKUPDIR"/"$VM6"/*"$NOW".ova
-                else
-                        rm "$BACKUPDIR"/"$VM6"/"$VM6"-"$NOW".tar.bz2
-                        tar -jcvf "$BACKUPDIR"/"$VM6"/"$VM6"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM6"/"$VM6"-"$NOW".ova
-                fi
-fi
-
-# VM7
-VM7TAR=$(tar tf "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW".tar.bz2)
-VM7OVA=""$BACKUPDIREQUAL"/"$VM7"/"$VM7"-"$NOW".ova"
-
-tar -jcvf "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW".ova
-
-if [ "$VM7TAR" == "$VM7OVA" ]; then
-        rm -r "$BACKUPDIR"/"$VM7"/*"$NOW".ova
-        echo "########## TAR creation of VM7 done! ############"
-else
-        rm "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW".tar.bz2
-        tar -jcvf "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW".ova
-                        # second try
-                        if [ "$VM7TAR" == "$VM7OVA" ]; then
-                        rm -r "$BACKUPDIR"/"$VM7"/*"$NOW".ova
-                else
-                        rm "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW".tar.bz2
-                        tar -jcvf "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW".tar.bz2 "$BACKUPDIR"/"$VM7"/"$VM7"-"$NOW".ova
-                fi
-fi
-
-###############Fail over delete old.ova's###
-sudo find $BACKUPDIR -mtime +"$DAYS" -type f -delete -print | grep -i '.*[.]ova'
-sudo find $BACKUPDIR -mtime +"$DAYS" -type f -delete -print | grep -i '.*[.]tar.bz2'
-
-###############Start all vm's################
-/etc/init.d/StartVMs start
-
-exit 0

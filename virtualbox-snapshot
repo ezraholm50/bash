@@ -15,17 +15,20 @@ VM1=""
 VM2=""
 VM3=""
 
+# Sleep time
+SLEEP="sleep 500"
+
 # Snapshot take and delete per VM
 sudo -H -b -u "$VBOXUSR" VBoxManage snapshot "$VM1" delete "$DAYS_AGO"
-sleep 300
+"$SLEEP"
 sudo -H -b -u "$VBOXUSR" VBoxManage snapshot "$VM1" take "$SNAPSHOT_NAME"
 
 sudo -H -b -u "$VBOXUSR" VBoxManage snapshot "$VM2" delete "$DAYS_AGO"
-sleep 300
+"$SLEEP"
 sudo -H -b -u "$VBOXUSR" VBoxManage snapshot "$VM2" take "$SNAPSHOT_NAME"
 
 sudo -H -b -u "$VBOXUSR" VBoxManage snapshot "$VM3" delete "$DAYS_AGO"
-sleep 300
+"$SLEEP"
 sudo -H -b -u "$VBOXUSR" VBoxManage snapshot "$VM3" take "$SNAPSHOT_NAME"
 
 # List the current snapshots in a file
