@@ -15,7 +15,9 @@ REMOTEDIR="" # Remote Directory to store backup in, be sure that you have permis
 DIR="" # Directory be backed up
 PORT="" # SSH port
 EXCLUDE="" # Directorys to exclude
+EXCLUDESYS="--exclude=/proc/* --exclude=/lost+found/* --exclude=/sys/*"
 
+# Run this script on login
 cat <<-LOGIN > "/home/$USER/.profile"
 
 ################# Rsync script ##################
@@ -32,26 +34,8 @@ bash /var/scripts/rsync-on-login.sh | adddate >> /var/log/rsync-login.log 2>&1
 ################# Rsync script ##################
 LOGIN
 
-# Ubuntu check
-DISTRO=$(lsb_release -sd | cut -d ' ' -f 2)
-version(){
-    local h t v
-
-    [[ $2 = "$1" || $2 = "$3" ]] && return 0
-
-    v=$(printf '%s\n' "$@" | sort -V)
-    h=$(head -n1 <<<"$v")
-    t=$(tail -n1 <<<"$v")
-
-    [[ $2 != "$h" && $2 != "$t" ]]
-}
-
-if ! version 16.04 "$DISTRO" 16.04.10; then
-    echo
-    echo "Ubuntu version $DISTRO is tested on 16.04 - 16.04.10 no support is given for other releases or distro's." 20 60
-    echo
-    exit
-fi
+# Remove line 19 to 36, only need it once
+ sed -e '19,36d' /var/scripts/rsync-on-login
 
 # Check if rsync is installed
 if [ $(dpkg-query -W -f='${Status}' rsync 2>/dev/null | grep -c "ok installed") -eq 1 ]; then
@@ -77,7 +61,7 @@ fi
 
 # Rsync
   if [ "$ADDRESS" == "$IPLAN" ]; then
-    rsync -aAXv "$EXCLUDE" -e "ssh -p $PORT" "$DIR" "$REMOTEHOST":"$REMOTEDIR"
+    rsync -aAXv "$EXCLUDE" "$EXCLUDESYS" -e "ssh -p $PORT" "$DIR" "$REMOTEHOST":"$REMOTEDIR"
   else
     echo
     echo "Not on right network to perform rsync backup..."
